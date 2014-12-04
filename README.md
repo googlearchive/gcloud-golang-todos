@@ -1,53 +1,42 @@
-## Project name
+## gcloud-golang-todos
 
-A description of what this project does and who it serves.
+> [TodoMVC](http://todomvc.com) backend using [gcloud-golang](//github.com/GoogleCloudPlatform/gcloud-golang).
 
-Include authorship, support contact and release information.
-
-
-## Project setup, installation, and configuration
-
-How do I, as a developer, start working on the project?
-
-1. What dependencies does it have (where are they expressed) and how do I install them?
-1. Can I see the project working before I change anything?
+[![Build Status](https://travis-ci.org/GoogleCloudPlatform/gcloud-golang-todos.svg?branch=master)](https://travis-ci.org/GoogleCloudPlatform/gcloud-golang-todos)
 
 
-## Testing
+### Prerequisites
 
-How do I run the project's automated tests?
+1. Create a new cloud project on [console.developers.google.com](http://console.developers.google.com)
+2. [Enable](https://console.developers.google.com/flows/enableapi?apiid=datastore) the [Google Cloud Datastore API](https://developers.google.com/datastore)
+3. Create a new service account and copy the JSON credentials to `key.json`
+4. Export your project id:
 
-* Unit Tests
-
-* Integration Tests
-
-
-## Deploying
-
-### How to setup the deployment environment
-
-* Addons, packages, or other dependencies required for deployment.
-* Required environment variables or credentials not included in git.
-* Monitoring services and logging.
-
-### How to deploy
+    ```sh
+    $ export PROJECT_ID=<project id>
+    ```
 
 
-## Troubleshooting & useful tools
-
-### Examples of common tasks
-
-e.g.
-* How to make curl requests while authenticated via oauth.
-* How to monitor background jobs.
-* How to run the app through a proxy.
+### Running
 
 
-## Contributing changes
+#### Locally
+
+
+#### [Docker](https://docker.com)
+
+
+#### [Managed VMs](https://developers.google.com/appengine/docs/managed-vms/)
+
+
+### Resources
+
+
+### Contributing changes
 
 * See [CONTRIB.md](CONTRIB.md)
 
 
-## Licensing
+### Licensing
 
 * See [LICENSE](LICENSE)
