@@ -22,6 +22,13 @@
 
 #### Locally
 
+```sh
+$ gcloud components update gae-go
+$ go get google.golang.org/appengine
+$ boot2docker up
+$
+```
+
 
 #### [Docker](https://docker.com)
 
