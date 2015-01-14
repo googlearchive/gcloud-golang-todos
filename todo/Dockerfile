@@ -2,6 +2,8 @@
 # single application.
 FROM google/appengine-go
 
+RUN apt-get update
+
 RUN apt-get install --no-install-recommends -y -q \
     curl build-essential git mercurial bzr
 RUN mkdir /goroot && curl https://storage.googleapis.com/golang/go1.2.2.linux-amd64.tar.gz | tar xvzf - -C /goroot --strip-components=1

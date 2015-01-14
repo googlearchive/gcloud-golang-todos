@@ -30,7 +30,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/GoogleCloudPlatform/gcloud-golang-todos/todo/task"
+	"github.com/GoogleCloudPlatform/gcloud-golang-todos/task"
 	"github.com/gorilla/mux"
 )
 

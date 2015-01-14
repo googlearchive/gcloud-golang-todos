@@ -14,7 +14,7 @@
 // +build !appengine
 
 // A stand-alone HTTP server providing a web UI for task management.
-package main
+package todo
 
 import (
 	"net/http"
