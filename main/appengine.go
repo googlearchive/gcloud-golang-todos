@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build appenginevm
+// +build appengine
 
 // A Google App Engine application providing a web UI for task management.
 // DISCLAIMER: This is not intended to be used, since instances can be
