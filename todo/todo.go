@@ -11,70 +11,70 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// The package provides a TaskManager implemented using TDD techniques.
+// The package provides a TodoManager implemented using TDD techniques.
 // The tests were developed before the code was written.
-package task
+package todo
 
 import "fmt"
 
-type Task struct {
+type Todo struct {
 	ID    int64  `json:"id"`        // Unique identifier
 	Title string `json:"title"`     // Description
-	Done  bool   `json:"completed"` // Is this task done?
+	Done  bool   `json:"completed"` // Is this todo done?
 }
 
-// NewTask creates a new task given a title, that can't be empty.
-func NewTask(title string) (*Task, error) {
+// NewTodo creates a new todo given a title, that can't be empty.
+func NewTodo(title string) (*Todo, error) {
 	if title == "" {
 		return nil, fmt.Errorf("empty title")
 	}
-	return &Task{0, title, false}, nil
+	return &Todo{0, title, false}, nil
 }
 
-// TaskManager manages a list of tasks in memory.
-type TaskManager struct {
-	tasks  []*Task
+// TodoManager manages a list of todos in memory.
+type TodoManager struct {
+	todos  []*Todo
 	lastID int64
 }
 
-// NewTaskManager returns an empty TaskManager.
-func NewTaskManager() *TaskManager {
-	return &TaskManager{}
+// NewTodoManager returns an empty TodoManager.
+func NewTodoManager() *TodoManager {
+	return &TodoManager{}
 }
 
-// Save saves the given Task in the TaskManager.
-func (m *TaskManager) Save(task *Task) error {
-	if task.ID == 0 {
+// Save saves the given Todo in the TodoManager.
+func (m *TodoManager) Save(todo *Todo) error {
+	if todo.ID == 0 {
 		m.lastID++
-		task.ID = m.lastID
-		m.tasks = append(m.tasks, cloneTask(task))
+		todo.ID = m.lastID
+		m.todos = append(m.todos, cloneTodo(todo))
 		return nil
 	}
 
-	for i, t := range m.tasks {
-		if t.ID == task.ID {
-			m.tasks[i] = cloneTask(task)
+	for i, t := range m.todos {
+		if t.ID == todo.ID {
+			m.todos[i] = cloneTodo(todo)
 			return nil
 		}
 	}
-	return fmt.Errorf("unknown task")
+	return fmt.Errorf("unknown todo")
 }
 
-// cloneTask creates and returns a deep copy of the given Task.
-func cloneTask(t *Task) *Task {
+// cloneTodo creates and returns a deep copy of the given Todo.
+func cloneTodo(t *Todo) *Todo {
 	c := *t
 	return &c
 }
 
-// All returns the list of all the Tasks in the TaskManager.
-func (m *TaskManager) All() []*Task {
-	return m.tasks
+// All returns the list of all the Todos in the TodoManager.
+func (m *TodoManager) All() []*Todo {
+	return m.todos
 }
 
-// Find returns the Task with the given id in the TaskManager and a boolean
+// Find returns the Todo with the given id in the TodoManager and a boolean
 // indicating if the id was found.
-func (m *TaskManager) Find(ID int64) (*Task, bool) {
-	for _, t := range m.tasks {
+func (m *TodoManager) Find(ID int64) (*Todo, bool) {
+	for _, t := range m.todos {
 		if t.ID == ID {
 			return t, true
 		}

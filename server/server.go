@@ -11,14 +11,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// This package implements a simple HTTP server providing a REST API to a task handler.
+// This package implements a simple HTTP server providing a REST API to a todo handler.
 //
 // It provides four methods:
 //
-// 	GET    /task/          Retrieves all the tasks.
-// 	POST   /task/          Creates a new task given a title.
-// 	GET    /task/{taskID}  Retrieves the task with the given id.
-// 	PUT    /task/{taskID}  Updates the task with the given id.
+// 	GET    /todos/          Retrieves all the todos.
+// 	POST   /todos/          Creates a new todo given a title.
+// 	GET    /todos/{todoID}  Retrieves the todo with the given id.
+// 	PUT    /todos/{todoID}  Updates the todo with the given id.
 //
 // Every method below gives more information about every API call, its parameters, and its results.
 package server
@@ -30,21 +30,22 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/GoogleCloudPlatform/gcloud-golang-todos/task"
+	"github.com/GoogleCloudPlatform/gcloud-golang-todos/todo"
 	"github.com/gorilla/mux"
 )
 
-var tasks = task.NewTaskManager()
+var todos = todo.NewTodoManager()
 
-const PathPrefix = "/task/"
+const PathPrefix = "/api/todos/"
 
 func RegisterHandlers() {
 	r := mux.NewRouter()
-	r.HandleFunc(PathPrefix, errorHandler(ListTasks)).Methods("GET")
-	r.HandleFunc(PathPrefix, errorHandler(NewTask)).Methods("POST")
-	r.HandleFunc(PathPrefix+"{id}", errorHandler(GetTask)).Methods("GET")
-	r.HandleFunc(PathPrefix+"{id}", errorHandler(UpdateTask)).Methods("PUT")
+	r.HandleFunc(PathPrefix, errorHandler(ListTodos)).Methods("GET")
+	r.HandleFunc(PathPrefix, errorHandler(NewTodo)).Methods("POST")
+	r.HandleFunc(PathPrefix+"{id}", errorHandler(GetTodo)).Methods("GET")
+	r.HandleFunc(PathPrefix+"{id}", errorHandler(UpdateTodo)).Methods("PUT")
 	http.Handle(PathPrefix, r)
+	http.HandleFunc("/api", IsApiEnabled)
 }
 
 // badRequest is handled by setting the status code in the reply to StatusBadRequest.
@@ -52,6 +53,11 @@ type badRequest struct{ error }
 
 // notFound is handled by setting the status code in the reply to StatusNotFound.
 type notFound struct{ error }
+
+// IsApiEnabled writes an HTTP 200 indicating that the TodoMvc API is enabled for this app.
+func IsApiEnabled(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
 
 // errorHandler wraps a function returning an error by handling the error and returning a http.Handler.
 // If the error is of the one of the types defined above, it is handled as described for every type.
@@ -66,7 +72,7 @@ func errorHandler(f func(w http.ResponseWriter, r *http.Request) error) http.Han
 		case badRequest:
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		case notFound:
-			http.Error(w, "task not found", http.StatusNotFound)
+			http.Error(w, "todo not found", http.StatusNotFound)
 		default:
 			log.Println(err)
 			http.Error(w, "oops", http.StatusInternalServerError)
@@ -74,42 +80,42 @@ func errorHandler(f func(w http.ResponseWriter, r *http.Request) error) http.Han
 	}
 }
 
-// ListTask handles GET requests on /task.
-// There's no parameters and it returns an object with a Tasks field containing a list of tasks.
+// ListTodos handles GET requests on /todos.
+// There's no parameters and it returns an object with a Todos field containing a list of todos.
 //
 // Example:
 //
-//   req: GET /task/
-//   res: 200 {"Tasks": [
+//   req: GET /todos/
+//   res: 200 {"Todos": [
 //          {"ID": 1, "Title": "Learn Go", "Done": false},
 //          {"ID": 2, "Title": "Buy bread", "Done": true}
 //        ]}
-func ListTasks(w http.ResponseWriter, r *http.Request) error {
-	res := struct{ Tasks []*task.Task }{tasks.All()}
+func ListTodos(w http.ResponseWriter, r *http.Request) error {
+	res := struct{ Todos []*todo.Todo }{todos.All()}
 	return json.NewEncoder(w).Encode(res)
 }
 
-// NewTask handles POST requests on /task.
+// NewTodo handles POST requests on /todos.
 // The request body must contain a JSON object with a Title field.
 // The status code of the response is used to indicate any error.
 //
 // Examples:
 //
-//   req: POST /task/ {"Title": ""}
+//   req: POST /todos/ {"Title": ""}
 //   res: 400 empty title
 //
-//   req: POST /task/ {"Title": "Buy bread"}
+//   req: POST /todos/ {"Title": "Buy bread"}
 //   res: 200
-func NewTask(w http.ResponseWriter, r *http.Request) error {
+func NewTodo(w http.ResponseWriter, r *http.Request) error {
 	req := struct{ Title string }{}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return badRequest{err}
 	}
-	t, err := task.NewTask(req.Title)
+	t, err := todo.NewTodo(req.Title)
 	if err != nil {
 		return badRequest{err}
 	}
-	return tasks.Save(t)
+	return todos.Save(t)
 }
 
 // parseID obtains the id variable from the given request url,
@@ -117,28 +123,28 @@ func NewTask(w http.ResponseWriter, r *http.Request) error {
 func parseID(r *http.Request) (int64, error) {
 	txt, ok := mux.Vars(r)["id"]
 	if !ok {
-		return 0, fmt.Errorf("task id not found")
+		return 0, fmt.Errorf("todo id not found")
 	}
 	return strconv.ParseInt(txt, 10, 0)
 }
 
-// GetTask handles GET requsts to /task/{taskID}.
-// There's no parameters and it returns a JSON encoded task.
+// GetTodo handles GET requsts to /todo/{todoID}.
+// There's no parameters and it returns a JSON encoded todo.
 //
 // Examples:
 //
-//   req: GET /task/1
+//   req: GET /todos/1
 //   res: 200 {"ID": 1, "Title": "Buy bread", "Done": true}
 //
-//   req: GET /task/42
-//   res: 404 task not found
-func GetTask(w http.ResponseWriter, r *http.Request) error {
+//   req: GET /todos/42
+//   res: 404 todo not found
+func GetTodo(w http.ResponseWriter, r *http.Request) error {
 	id, err := parseID(r)
-	log.Println("Task is ", id)
+	log.Println("Todo is ", id)
 	if err != nil {
 		return badRequest{err}
 	}
-	t, ok := tasks.Find(id)
+	t, ok := todos.Find(id)
 	log.Println("Found", ok)
 
 	if !ok {
@@ -147,30 +153,30 @@ func GetTask(w http.ResponseWriter, r *http.Request) error {
 	return json.NewEncoder(w).Encode(t)
 }
 
-// UpdateTask handles PUT requests to /task/{taskID}.
-// The request body must contain a JSON encoded task.
+// UpdateTodo handles PUT requests to /todo/{todoID}.
+// The request body must contain a JSON encoded todo.
 //
 // Example:
 //
-//   req: PUT /task/1 {"ID": 1, "Title": "Learn Go", "Done": true}
+//   req: PUT /todos/1 {"ID": 1, "Title": "Learn Go", "Done": true}
 //   res: 200
 //
-//   req: PUT /task/2 {"ID": 2, "Title": "Learn Go", "Done": true}
-//   res: 400 inconsistent task IDs
-func UpdateTask(w http.ResponseWriter, r *http.Request) error {
+//   req: PUT /todos/2 {"ID": 1, "Title": "Learn Go", "Done": true}
+//   res: 400 inconsistent todo IDs
+func UpdateTodo(w http.ResponseWriter, r *http.Request) error {
 	id, err := parseID(r)
 	if err != nil {
 		return badRequest{err}
 	}
-	var t task.Task
+	var t todo.Todo
 	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
 		return badRequest{err}
 	}
 	if t.ID != id {
-		return badRequest{fmt.Errorf("inconsistent task IDs")}
+		return badRequest{fmt.Errorf("inconsistent todo IDs")}
 	}
-	if _, ok := tasks.Find(id); !ok {
+	if _, ok := todos.Find(id); !ok {
 		return notFound{}
 	}
-	return tasks.Save(&t)
+	return todos.Save(&t)
 }

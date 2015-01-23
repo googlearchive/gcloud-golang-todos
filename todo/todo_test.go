@@ -11,107 +11,107 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package task
+package todo
 
 import "testing"
 
-func newTaskOrFatal(t *testing.T, title string) *Task {
-	task, err := NewTask(title)
+func newTodoOrFatal(t *testing.T, title string) *Todo {
+	todo, err := NewTodo(title)
 	if err != nil {
-		t.Fatalf("new task: %v", err)
+		t.Fatalf("new todo: %v", err)
 	}
-	return task
+	return todo
 }
 
-func TestNewTask(t *testing.T) {
+func TestNewTodo(t *testing.T) {
 	title := "learn Go"
-	task := newTaskOrFatal(t, title)
-	if task.Title != title {
-		t.Errorf("expected title %q, got %q", title, task.Title)
+	todo := newTodoOrFatal(t, title)
+	if todo.Title != title {
+		t.Errorf("expected title %q, got %q", title, todo.Title)
 	}
-	if task.Done {
-		t.Errorf("new task is done")
+	if todo.Done {
+		t.Errorf("new todo is done")
 	}
 }
 
-func TestNewTaskEmptyTitle(t *testing.T) {
-	_, err := NewTask("")
+func TestNewTodoEmptyTitle(t *testing.T) {
+	_, err := NewTodo("")
 	if err == nil {
 		t.Errorf("expected 'empty title' error, got nil")
 	}
 }
 
-func TestSaveTaskAndRetrieve(t *testing.T) {
-	task := newTaskOrFatal(t, "learn Go")
+func TestSaveTodoAndRetrieve(t *testing.T) {
+	todo := newTodoOrFatal(t, "learn Go")
 
-	m := NewTaskManager()
-	m.Save(task)
+	m := NewTodoManager()
+	m.Save(todo)
 
 	all := m.All()
 	if len(all) != 1 {
-		t.Errorf("expected 1 task, got %v", len(all))
+		t.Errorf("expected 1 todo, got %v", len(all))
 	}
-	if *all[0] != *task {
-		t.Errorf("expected %v, got %v", task, all[0])
+	if *all[0] != *todo {
+		t.Errorf("expected %v, got %v", todo, all[0])
 	}
 }
 
-func TestSaveAndRetrieveTwoTasks(t *testing.T) {
-	learnGo := newTaskOrFatal(t, "learn Go")
-	learnTDD := newTaskOrFatal(t, "learn TDD")
+func TestSaveAndRetrieveTwoTodos(t *testing.T) {
+	learnGo := newTodoOrFatal(t, "learn Go")
+	learnTDD := newTodoOrFatal(t, "learn TDD")
 
-	m := NewTaskManager()
+	m := NewTodoManager()
 	m.Save(learnGo)
 	m.Save(learnTDD)
 
 	all := m.All()
 	if len(all) != 2 {
-		t.Errorf("expected 2 tasks, got %v", len(all))
+		t.Errorf("expected 2 todos, got %v", len(all))
 	}
 	if *all[0] != *learnGo && *all[1] != *learnGo {
-		t.Errorf("missing task: %v", learnGo)
+		t.Errorf("missing todo: %v", learnGo)
 	}
 	if *all[0] != *learnTDD && *all[1] != *learnTDD {
-		t.Errorf("missing task: %v", learnTDD)
+		t.Errorf("missing todo: %v", learnTDD)
 	}
 }
 
 func TestSaveModifyAndRetrieve(t *testing.T) {
-	task := newTaskOrFatal(t, "learn Go")
-	m := NewTaskManager()
-	m.Save(task)
+	todo := newTodoOrFatal(t, "learn Go")
+	m := NewTodoManager()
+	m.Save(todo)
 
-	task.Done = true
+	todo.Done = true
 	if m.All()[0].Done {
-		t.Errorf("saved task wasn't done")
+		t.Errorf("saved todo wasn't done")
 	}
 }
 
 func TestSaveTwiceAndRetrieve(t *testing.T) {
-	task := newTaskOrFatal(t, "learn Go")
-	m := NewTaskManager()
-	m.Save(task)
-	m.Save(task)
+	todo := newTodoOrFatal(t, "learn Go")
+	m := NewTodoManager()
+	m.Save(todo)
+	m.Save(todo)
 
 	all := m.All()
 	if len(all) != 1 {
-		t.Errorf("expected 1 task, got %v", len(all))
+		t.Errorf("expected 1 todo, got %v", len(all))
 	}
-	if *all[0] != *task {
-		t.Errorf("expected task %v, got %v", task, all[0])
+	if *all[0] != *todo {
+		t.Errorf("expected todo %v, got %v", todo, all[0])
 	}
 }
 
 func TestSaveAndFind(t *testing.T) {
-	task := newTaskOrFatal(t, "learn Go")
-	m := NewTaskManager()
-	m.Save(task)
+	todo := newTodoOrFatal(t, "learn Go")
+	m := NewTodoManager()
+	m.Save(todo)
 
-	nt, ok := m.Find(task.ID)
+	nt, ok := m.Find(todo.ID)
 	if !ok {
-		t.Errorf("didn't find task")
+		t.Errorf("didn't find todo")
 	}
-	if *task != *nt {
-		t.Errorf("expected %v, got %v", task, nt)
+	if *todo != *nt {
+		t.Errorf("expected %v, got %v", todo, nt)
 	}
 }
