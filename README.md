@@ -15,6 +15,9 @@
     ```sh
     $ export PROJECT_ID=<project id>
     ```
+5. Initialize the todomvc subproject:
+
+	git submodule init
 
 
 ### Running
