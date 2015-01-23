@@ -18,9 +18,9 @@ package task
 import "fmt"
 
 type Task struct {
-	ID    int64  // Unique identifier
-	Title string // Description
-	Done  bool   // Is this task done?
+	ID    int64  `json:"id"`        // Unique identifier
+	Title string `json:"title"`     // Description
+	Done  bool   `json:"completed"` // Is this task done?
 }
 
 // NewTask creates a new task given a title, that can't be empty.
