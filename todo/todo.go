@@ -15,69 +15,61 @@
 // The tests were developed before the code was written.
 package todo
 
-import "fmt"
+import (
+	"fmt"
+
+	"golang.org/x/net/context"
+	"google.golang.org/appengine/datastore"
+)
 
 type Todo struct {
-	ID    int64  `json:"id"`        // Unique identifier
-	Title string `json:"title"`     // Description
-	Done  bool   `json:"completed"` // Is this todo done?
+	ID    int64  `datastore:"-" json:"id"` // Unique identifier
+	Title string `json:"title"`            // Description
+	Done  bool   `json:"completed"`        // Is this todo done?
 }
 
-// NewTodo creates a new todo given a title, that can't be empty.
+func (t *Todo) Save(c context.Context) error {
+	k := datastore.NewKey(c, "Todo", "", t.ID, nil)
+	k, err := datastore.Put(c, k, t)
+	if err == nil {
+		t.ID = k.IntID()
+	}
+	return err
+}
+
+func All(c context.Context) ([]*Todo, error) {
+	var todos []*Todo
+	keys, err := datastore.NewQuery("Todo").GetAll(c, &todos)
+	if err == nil {
+		for i := 0; i < len(keys); i++ {
+			todos[i].ID = keys[i].IntID()
+		}
+	}
+	return todos, err
+}
+
+// Get returns the Todo with the given id and a boolean indicating if it
+// was found.
+func Get(c context.Context, id int64) (*Todo, bool) {
+	k := datastore.NewKey(c, "Todo", "", id, nil)
+	todo := &Todo{}
+	err := datastore.Get(c, k, todo)
+	if err != nil {
+		todo.ID = k.IntID()
+	}
+	return todo, err == nil
+}
+
+func Delete(c context.Context, id int64) bool {
+	k := datastore.NewKey(c, "Todo", "", id, nil)
+	return datastore.Delete(c, k) == nil
+}
+
+// NewTodo creates a new todo given the given title, which can't be the empty
+// string.
 func NewTodo(title string) (*Todo, error) {
 	if title == "" {
 		return nil, fmt.Errorf("empty title")
 	}
 	return &Todo{0, title, false}, nil
-}
-
-// TodoManager manages a list of todos in memory.
-type TodoManager struct {
-	todos  []*Todo
-	lastID int64
-}
-
-// NewTodoManager returns an empty TodoManager.
-func NewTodoManager() *TodoManager {
-	return &TodoManager{}
-}
-
-// Save saves the given Todo in the TodoManager.
-func (m *TodoManager) Save(todo *Todo) error {
-	if todo.ID == 0 {
-		m.lastID++
-		todo.ID = m.lastID
-		m.todos = append(m.todos, cloneTodo(todo))
-		return nil
-	}
-
-	for i, t := range m.todos {
-		if t.ID == todo.ID {
-			m.todos[i] = cloneTodo(todo)
-			return nil
-		}
-	}
-	return fmt.Errorf("unknown todo")
-}
-
-// cloneTodo creates and returns a deep copy of the given Todo.
-func cloneTodo(t *Todo) *Todo {
-	c := *t
-	return &c
-}
-
-// All returns the list of all the Todos in the TodoManager.
-func (m *TodoManager) All() []*Todo {
-	return m.todos
-}
-
-// Find returns the Todo with the given id in the TodoManager and a boolean
-// indicating if the id was found.
-func (m *TodoManager) Find(ID int64) (*Todo, bool) {
-	for _, t := range m.todos {
-		if t.ID == ID {
-			return t, true
-		}
-	}
-	return nil, false
 }

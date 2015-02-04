@@ -26,25 +26,36 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/GoogleCloudPlatform/gcloud-golang-todos/todo"
 	"github.com/gorilla/mux"
+	"golang.org/x/net/context"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/log"
+	"google.golang.org/appengine/urlfetch"
+	"google.golang.org/cloud"
 )
 
-var todos = todo.NewTodoManager()
-
-const PathPrefix = "/api/todos/"
+const PathPrefix = "/api/todos"
+const SlashedPathPrefix = PathPrefix + "/"
 
 func RegisterHandlers() {
 	r := mux.NewRouter()
-	r.HandleFunc(PathPrefix, errorHandler(ListTodos)).Methods("GET")
-	r.HandleFunc(PathPrefix, errorHandler(NewTodo)).Methods("POST")
-	r.HandleFunc(PathPrefix+"{id}", errorHandler(GetTodo)).Methods("GET")
-	r.HandleFunc(PathPrefix+"{id}", errorHandler(UpdateTodo)).Methods("PUT")
-	http.Handle(PathPrefix, r)
+	r.HandleFunc(PathPrefix,
+		errorHandler(ListTodos)).Methods("GET")
+	r.HandleFunc(PathPrefix,
+		errorHandler(NewTodo)).Methods("POST")
+	r.HandleFunc(SlashedPathPrefix+"{id}",
+		errorHandler(GetTodo)).Methods("GET")
+	r.HandleFunc(SlashedPathPrefix+"{id}",
+		errorHandler(UpdateTodo)).Methods("PUT")
+	r.HandleFunc(SlashedPathPrefix+"{id}",
+		errorHandler(DeleteTodo)).Methods("DELETE")
+	http.Handle("/", r)
 	http.HandleFunc("/api", IsApiEnabled)
 }
 
@@ -74,24 +85,41 @@ func errorHandler(f func(w http.ResponseWriter, r *http.Request) error) http.Han
 		case notFound:
 			http.Error(w, "todo not found", http.StatusNotFound)
 		default:
-			log.Println(err)
 			http.Error(w, "oops", http.StatusInternalServerError)
 		}
 	}
 }
 
+// newCloudContext builds a new Context suitable for use with cloud components.
+func newCloudContext(c context.Context) context.Context {
+	hc := &http.Client{
+		Transport: &oauth2.Transport{
+			Source: google.AppEngineTokenSource(c,
+				"https://www.googleapis.com/auth/datastore"),
+			Base: &urlfetch.Transport{Context: c},
+		},
+	}
+	return cloud.NewContext(appengine.AppID(c), hc)
+}
+
 // ListTodos handles GET requests on /todos.
-// There's no parameters and it returns an object with a Todos field containing a list of todos.
+// It requires no parameters and returns a list of todos.
 //
 // Example:
 //
 //   req: GET /todos/
-//   res: 200 {"Todos": [
-//          {"ID": 1, "Title": "Learn Go", "Done": false},
-//          {"ID": 2, "Title": "Buy bread", "Done": true}
-//        ]}
+//   res: 200 [
+//          {"id": 1, "title": "Learn Go", "completed": false},
+//          {"id": 2, "title": "Buy bread", "completed": true}
+//        ]
 func ListTodos(w http.ResponseWriter, r *http.Request) error {
-	res := struct{ Todos []*todo.Todo }{todos.All()}
+	c := appengine.NewContext(r)
+	//	cc := newCloudContext(c)
+	res, err := todo.All(c)
+	if err != nil {
+		log.Errorf(c, "ListTodos: %v", err)
+		return err
+	}
 	return json.NewEncoder(w).Encode(res)
 }
 
@@ -101,10 +129,10 @@ func ListTodos(w http.ResponseWriter, r *http.Request) error {
 //
 // Examples:
 //
-//   req: POST /todos/ {"Title": ""}
+//   req: POST /todos/ {"title": ""}
 //   res: 400 empty title
 //
-//   req: POST /todos/ {"Title": "Buy bread"}
+//   req: POST /todos/ {"title": "Buy bread"}
 //   res: 200
 func NewTodo(w http.ResponseWriter, r *http.Request) error {
 	req := struct{ Title string }{}
@@ -115,7 +143,12 @@ func NewTodo(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return badRequest{err}
 	}
-	return todos.Save(t)
+	c := appengine.NewContext(r)
+	log.Infof(c, "Saving new todo: %v", t)
+	if err = t.Save(c); err != nil {
+		return err
+	}
+	return json.NewEncoder(w).Encode(t)
 }
 
 // parseID obtains the id variable from the given request url,
@@ -134,19 +167,16 @@ func parseID(r *http.Request) (int64, error) {
 // Examples:
 //
 //   req: GET /todos/1
-//   res: 200 {"ID": 1, "Title": "Buy bread", "Done": true}
+//   res: 200 {"id": 1, "title": "Buy bread", "completed": true}
 //
 //   req: GET /todos/42
 //   res: 404 todo not found
 func GetTodo(w http.ResponseWriter, r *http.Request) error {
 	id, err := parseID(r)
-	log.Println("Todo is ", id)
 	if err != nil {
 		return badRequest{err}
 	}
-	t, ok := todos.Find(id)
-	log.Println("Found", ok)
-
+	t, ok := todo.Get(appengine.NewContext(r), id)
 	if !ok {
 		return notFound{}
 	}
@@ -158,10 +188,10 @@ func GetTodo(w http.ResponseWriter, r *http.Request) error {
 //
 // Example:
 //
-//   req: PUT /todos/1 {"ID": 1, "Title": "Learn Go", "Done": true}
+//   req: PUT /todos/1 {"id": 1, "title": "Learn Go", "completed": true}
 //   res: 200
 //
-//   req: PUT /todos/2 {"ID": 1, "Title": "Learn Go", "Done": true}
+//   req: PUT /todos/2 {"id": 1, "title": "Learn Go", "completed": true}
 //   res: 400 inconsistent todo IDs
 func UpdateTodo(w http.ResponseWriter, r *http.Request) error {
 	id, err := parseID(r)
@@ -175,8 +205,30 @@ func UpdateTodo(w http.ResponseWriter, r *http.Request) error {
 	if t.ID != id {
 		return badRequest{fmt.Errorf("inconsistent todo IDs")}
 	}
-	if _, ok := todos.Find(id); !ok {
+	c := appengine.NewContext(r)
+	if _, ok := todo.Get(c, id); !ok {
+		log.Infof(c, "Unable to find todo: %v", t)
 		return notFound{}
 	}
-	return todos.Save(&t)
+	if err = t.Save(c); err != nil {
+		return err
+	}
+	return json.NewEncoder(w).Encode(t)
+}
+
+// DeleteTodo handles DELETE requests to /todo/{todoID}.
+// Returns a badRequest error if the ID cannot be parsed, and notFound if
+// no corresponding todo can be found.
+func DeleteTodo(w http.ResponseWriter, r *http.Request) error {
+	id, err := parseID(r)
+	if err != nil {
+		return badRequest{err}
+	}
+	c := appengine.NewContext(r)
+	log.Infof(c, "Trying to delete id %v", id)
+	if ok := todo.Delete(c, id); !ok {
+		return notFound{}
+	}
+	w.WriteHeader(http.StatusNoContent)
+	return nil
 }
