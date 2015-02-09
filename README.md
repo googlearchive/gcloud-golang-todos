@@ -13,7 +13,7 @@
 4. Export your project id:
 
     ```sh
-    $ export PROJECT_ID=<project id>
+    $ gcloud config set project <project id>
     ```
 5. Initialize the todomvc subproject:
 
@@ -21,6 +21,8 @@
 
 
 ### Running
+
+	gcloud preview app run main --enable-mvm-logs
 
 
 #### Locally

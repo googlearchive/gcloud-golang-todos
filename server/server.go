@@ -32,12 +32,8 @@ import (
 	"github.com/GoogleCloudPlatform/gcloud-golang-todos/todo"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/context"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/log"
-	"google.golang.org/appengine/urlfetch"
-	"google.golang.org/cloud"
 )
 
 const PathPrefix = "/api/todos"
@@ -73,9 +69,10 @@ func IsApiEnabled(w http.ResponseWriter, r *http.Request) {
 // errorHandler wraps a function returning an error by handling the error and returning a http.Handler.
 // If the error is of the one of the types defined above, it is handled as described for every type.
 // If the error is of another type, it is considered as an internal error and its message is logged.
-func errorHandler(f func(w http.ResponseWriter, r *http.Request) error) http.HandlerFunc {
+func errorHandler(f func(w http.ResponseWriter, r *http.Request, c context.Context) error) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := f(w, r)
+		c := appengine.NewContext(r)
+		err := f(w, r, c)
 		if err == nil {
 			return
 		}
@@ -85,21 +82,10 @@ func errorHandler(f func(w http.ResponseWriter, r *http.Request) error) http.Han
 		case notFound:
 			http.Error(w, "todo not found", http.StatusNotFound)
 		default:
+			log.Errorf(c, "internal exception %v", err)
 			http.Error(w, "oops", http.StatusInternalServerError)
 		}
 	}
-}
-
-// newCloudContext builds a new Context suitable for use with cloud components.
-func newCloudContext(c context.Context) context.Context {
-	hc := &http.Client{
-		Transport: &oauth2.Transport{
-			Source: google.AppEngineTokenSource(c,
-				"https://www.googleapis.com/auth/datastore"),
-			Base: &urlfetch.Transport{Context: c},
-		},
-	}
-	return cloud.NewContext(appengine.AppID(c), hc)
 }
 
 // ListTodos handles GET requests on /todos.
@@ -112,9 +98,7 @@ func newCloudContext(c context.Context) context.Context {
 //          {"id": 1, "title": "Learn Go", "completed": false},
 //          {"id": 2, "title": "Buy bread", "completed": true}
 //        ]
-func ListTodos(w http.ResponseWriter, r *http.Request) error {
-	c := appengine.NewContext(r)
-	//	cc := newCloudContext(c)
+func ListTodos(w http.ResponseWriter, r *http.Request, c context.Context) error {
 	res, err := todo.All(c)
 	if err != nil {
 		log.Errorf(c, "ListTodos: %v", err)
@@ -134,7 +118,7 @@ func ListTodos(w http.ResponseWriter, r *http.Request) error {
 //
 //   req: POST /todos/ {"title": "Buy bread"}
 //   res: 200
-func NewTodo(w http.ResponseWriter, r *http.Request) error {
+func NewTodo(w http.ResponseWriter, r *http.Request, c context.Context) error {
 	req := struct{ Title string }{}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return badRequest{err}
@@ -143,7 +127,6 @@ func NewTodo(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return badRequest{err}
 	}
-	c := appengine.NewContext(r)
 	log.Infof(c, "Saving new todo: %v", t)
 	if err = t.Save(c); err != nil {
 		return err
@@ -171,7 +154,7 @@ func parseID(r *http.Request) (int64, error) {
 //
 //   req: GET /todos/42
 //   res: 404 todo not found
-func GetTodo(w http.ResponseWriter, r *http.Request) error {
+func GetTodo(w http.ResponseWriter, r *http.Request, c context.Context) error {
 	id, err := parseID(r)
 	if err != nil {
 		return badRequest{err}
@@ -193,7 +176,7 @@ func GetTodo(w http.ResponseWriter, r *http.Request) error {
 //
 //   req: PUT /todos/2 {"id": 1, "title": "Learn Go", "completed": true}
 //   res: 400 inconsistent todo IDs
-func UpdateTodo(w http.ResponseWriter, r *http.Request) error {
+func UpdateTodo(w http.ResponseWriter, r *http.Request, c context.Context) error {
 	id, err := parseID(r)
 	if err != nil {
 		return badRequest{err}
@@ -205,7 +188,6 @@ func UpdateTodo(w http.ResponseWriter, r *http.Request) error {
 	if t.ID != id {
 		return badRequest{fmt.Errorf("inconsistent todo IDs")}
 	}
-	c := appengine.NewContext(r)
 	if _, ok := todo.Get(c, id); !ok {
 		log.Infof(c, "Unable to find todo: %v", t)
 		return notFound{}
@@ -219,12 +201,11 @@ func UpdateTodo(w http.ResponseWriter, r *http.Request) error {
 // DeleteTodo handles DELETE requests to /todo/{todoID}.
 // Returns a badRequest error if the ID cannot be parsed, and notFound if
 // no corresponding todo can be found.
-func DeleteTodo(w http.ResponseWriter, r *http.Request) error {
+func DeleteTodo(w http.ResponseWriter, r *http.Request, c context.Context) error {
 	id, err := parseID(r)
 	if err != nil {
 		return badRequest{err}
 	}
-	c := appengine.NewContext(r)
 	log.Infof(c, "Trying to delete id %v", id)
 	if ok := todo.Delete(c, id); !ok {
 		return notFound{}
