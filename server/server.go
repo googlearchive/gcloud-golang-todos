@@ -45,6 +45,8 @@ func RegisterHandlers() {
 		errorHandler(ListTodos)).Methods("GET")
 	r.HandleFunc(PathPrefix,
 		errorHandler(NewTodo)).Methods("POST")
+	r.HandleFunc(PathPrefix,
+		errorHandler(DeleteCompletedTodos)).Methods("DELETE")
 	r.HandleFunc(SlashedPathPrefix+"{id}",
 		errorHandler(GetTodo)).Methods("GET")
 	r.HandleFunc(SlashedPathPrefix+"{id}",
@@ -104,6 +106,7 @@ func ListTodos(w http.ResponseWriter, r *http.Request, c context.Context) error 
 		log.Errorf(c, "ListTodos: %v", err)
 		return err
 	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	return json.NewEncoder(w).Encode(res)
 }
 
@@ -117,7 +120,7 @@ func ListTodos(w http.ResponseWriter, r *http.Request, c context.Context) error 
 //   res: 400 empty title
 //
 //   req: POST /todos/ {"title": "Buy bread"}
-//   res: 200
+//   res: 201
 func NewTodo(w http.ResponseWriter, r *http.Request, c context.Context) error {
 	req := struct{ Title string }{}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -131,6 +134,8 @@ func NewTodo(w http.ResponseWriter, r *http.Request, c context.Context) error {
 	if err = t.Save(c); err != nil {
 		return err
 	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusCreated)
 	return json.NewEncoder(w).Encode(t)
 }
 
@@ -144,7 +149,7 @@ func parseID(r *http.Request) (int64, error) {
 	return strconv.ParseInt(txt, 10, 0)
 }
 
-// GetTodo handles GET requsts to /todo/{todoID}.
+// GetTodo handles GET requsts to /todos/{todoID}.
 // There's no parameters and it returns a JSON encoded todo.
 //
 // Examples:
@@ -163,11 +168,14 @@ func GetTodo(w http.ResponseWriter, r *http.Request, c context.Context) error {
 	if !ok {
 		return notFound{}
 	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	return json.NewEncoder(w).Encode(t)
 }
 
-// UpdateTodo handles PUT requests to /todo/{todoID}.
+// UpdateTodo handles PUT requests to /todos/{todoID}.
 // The request body must contain a JSON encoded todo.
+// The id property is optional, but if it is included, it must match
+// with the request path.
 //
 // Example:
 //
@@ -185,6 +193,9 @@ func UpdateTodo(w http.ResponseWriter, r *http.Request, c context.Context) error
 	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
 		return badRequest{err}
 	}
+	if t.ID == 0 {
+		t.ID = id
+	}
 	if t.ID != id {
 		return badRequest{fmt.Errorf("inconsistent todo IDs")}
 	}
@@ -195,10 +206,11 @@ func UpdateTodo(w http.ResponseWriter, r *http.Request, c context.Context) error
 	if err = t.Save(c); err != nil {
 		return err
 	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	return json.NewEncoder(w).Encode(t)
 }
 
-// DeleteTodo handles DELETE requests to /todo/{todoID}.
+// DeleteTodo handles DELETE requests to /todos/{todoID}.
 // Returns a badRequest error if the ID cannot be parsed, and notFound if
 // no corresponding todo can be found.
 func DeleteTodo(w http.ResponseWriter, r *http.Request, c context.Context) error {
@@ -209,6 +221,17 @@ func DeleteTodo(w http.ResponseWriter, r *http.Request, c context.Context) error
 	log.Infof(c, "Trying to delete id %v", id)
 	if ok := todo.Delete(c, id); !ok {
 		return notFound{}
+	}
+	w.WriteHeader(http.StatusNoContent)
+	return nil
+}
+
+// DeleteCompletedTodos handles DELETE requests to /todos.
+// It attempts to delete all todos which have been marked completed and returns
+// an error if one occurred.
+func DeleteCompletedTodos(w http.ResponseWriter, r *http.Request, c context.Context) error {
+	if err := todo.DeleteCompleted(c); err != nil {
+		return err
 	}
 	w.WriteHeader(http.StatusNoContent)
 	return nil
