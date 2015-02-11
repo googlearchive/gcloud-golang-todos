@@ -11,6 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build appenginevm
 // This package implements a simple HTTP server providing a REST API to a todo
 // handler.
 //
@@ -25,7 +26,7 @@
 //
 // Every method below gives more information about every API call, its
 // parameters, and its results.
-package server
+package main
 
 import (
 	"encoding/json"
@@ -43,7 +44,7 @@ import (
 const PathPrefix = "/api/todos"
 const SlashedPathPrefix = PathPrefix + "/"
 
-func RegisterHandlers() {
+func init() {
 	r := mux.NewRouter()
 	r.HandleFunc(PathPrefix,
 		errorHandler(ListTodos)).Methods("GET")
