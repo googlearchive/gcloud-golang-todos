@@ -11,16 +11,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// This package implements a simple HTTP server providing a REST API to a todo handler.
+// This package implements a simple HTTP server providing a REST API to a todo
+// handler.
 //
-// It provides four methods:
+// It provides six methods:
 //
-// 	GET    /todos/          Retrieves all the todos.
-// 	POST   /todos/          Creates a new todo given a title.
-// 	GET    /todos/{todoID}  Retrieves the todo with the given id.
-// 	PUT    /todos/{todoID}  Updates the todo with the given id.
+// 	GET	/todos		Retrieves all the todos.
+// 	POST	/todos		Creates a new todo given a title.
+//	DELETE	/todos		Deletes all completed todos.
+// 	GET	/todos/{todoID}	Retrieves the todo with the given id.
+// 	PUT	/todos/{todoID}	Updates the todo with the given id.
+//	DELETE	/todos/{todoID}	Deletes the todo with the given id.
 //
-// Every method below gives more information about every API call, its parameters, and its results.
+// Every method below gives more information about every API call, its
+// parameters, and its results.
 package server
 
 import (
