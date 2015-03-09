@@ -30,7 +30,9 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 
@@ -43,6 +45,8 @@ import (
 
 const PathPrefix = "/api/todos"
 const SlashedPathPrefix = PathPrefix + "/"
+
+var learnJson []byte
 
 func init() {
 	r := mux.NewRouter()
@@ -59,6 +63,7 @@ func init() {
 	r.HandleFunc(SlashedPathPrefix+"{id}",
 		errorHandler(DeleteTodo)).Methods("DELETE")
 	http.Handle("/", r)
+	http.HandleFunc("/learn.json", RenderMergedJson)
 	http.HandleFunc("/api", IsApiEnabled)
 }
 
@@ -240,4 +245,56 @@ func DeleteCompletedTodos(w http.ResponseWriter, r *http.Request, c context.Cont
 	}
 	w.WriteHeader(http.StatusNoContent)
 	return nil
+}
+
+// mergeJsonObjectFiles merges the k/v pairs in all indicated files with the
+// base map derived from the first file. An error is returned if any file
+// cannot be read or have its data unmarshaled. An error is also returned
+// if the resulting map cannot be marshaled.
+// Importantly, this function only works with files corresponding to JSON
+// objects! Files that correspond to JSON arrays will fail!
+func mergeJsonObjectFiles(files ...string) (b []byte, err error) {
+	if files == nil {
+		return nil, errors.New("Called with no files!")
+	}
+	b, err = ioutil.ReadFile(files[0])
+	if err != nil {
+		return nil, err
+	}
+	var base map[string]interface{}
+	if err = json.Unmarshal(b, &base); err != nil {
+		return nil, err
+	}
+	for _, file := range files[1:] {
+		b, err = ioutil.ReadFile(file)
+		if err != nil {
+			return nil, err
+		}
+		var next map[string]interface{}
+		if err = json.Unmarshal(b, &next); err != nil {
+			return nil, err
+		}
+		for k, v := range next {
+			base[k] = v
+		}
+	}
+	b, err = json.Marshal(base)
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
+func RenderMergedJson(w http.ResponseWriter, r *http.Request) {
+	if learnJson == nil {
+		b, err := mergeJsonObjectFiles("static/todomvc/learn.json", "static/backend_learn.json")
+		if err != nil {
+			log.Errorf(appengine.NewContext(r), "Could not get merged json: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		learnJson = b
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Write(learnJson)
 }
