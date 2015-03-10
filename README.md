@@ -7,18 +7,18 @@
 
 1. Create a new cloud project on [console.developers.google.com](https://console.developers.google.com)
 1. Export your project id:
-```sh
-gcloud config set project <project id>
-```
+    ```sh
+    gcloud config set project <project id>
+    ```
 1. go-get this code!
-```sh
-go get -u github.com/GoogleCloudPlatform/gcloud-golang-todos
-```
+    ```sh
+    go get -u github.com/GoogleCloudPlatform/gcloud-golang-todos
+    ```
 1. Initialize the todomvc subproject:
-```sh
-cd $GOPATH/src/github.com/GoogleCloudPlatform/gcloud-golang-todos
-git submodule init
-```
+    ```sh
+    cd $GOPATH/src/github.com/GoogleCloudPlatform/gcloud-golang-todos
+    git submodule init
+    ```
 
 
 ### Running
