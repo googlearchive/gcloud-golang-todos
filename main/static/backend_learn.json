@@ -1,0 +1,37 @@
+{
+  "backend": {
+    "name": "Google Cloud Platform",
+    "description": "Google Cloud Platform is available for applications written in Go.",
+    "homepage": "http://cloud.google.com/solutions/go",
+    "examples": [
+      {
+        "name": "Go + Managed VMs",
+        "url": "https://github.com/GoogleCloudPlatform/gcloud-golang-todos"
+      }
+    ],
+    "link_groups": [
+      {
+        "heading": "Official Resources",
+        "links": [
+          {
+	    "name": "Go Managed VMs",
+	    "url": "https://cloud.google.com/appengine/docs/go/managed-vms/"
+          }
+        ]
+      },
+      {
+        "heading": "Community",
+        "links": [
+	  {
+	    "name": "google-appengine-go on Google Groups",
+	    "url": "https://groups.google.com/forum/#!forum/google-appengine-go"
+	  },
+          {
+            "name": "Google App Engine on Stack Overflow",
+            "url": "http://stackoverflow.com/questions/tagged/google-app-engine"
+          }
+        ]
+      }
+    ]
+  }
+}

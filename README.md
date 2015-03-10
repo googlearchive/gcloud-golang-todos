@@ -1,53 +1,51 @@
-## Project name
+## gcloud-golang-todos
 
-A description of what this project does and who it serves.
-
-Include authorship, support contact and release information.
+> [TodoMVC](http://todomvc.com) backend using [gcloud-golang](//github.com/GoogleCloudPlatform/gcloud-golang).
 
 
-## Project setup, installation, and configuration
+### Prerequisites
 
-How do I, as a developer, start working on the project?
+1. Create a new cloud project on [console.developers.google.com](https://console.developers.google.com)
+1. Export your project id:
+    
+    ```sh
+    gcloud config set project <project id>
+    ```
 
-1. What dependencies does it have (where are they expressed) and how do I install them?
-1. Can I see the project working before I change anything?
+1. go-get this code!
 
+    ```sh
+    go get -u github.com/GoogleCloudPlatform/gcloud-golang-todos
+    ```
 
-## Testing
+1. Initialize the todomvc subproject:
 
-How do I run the project's automated tests?
-
-* Unit Tests
-
-* Integration Tests
-
-
-## Deploying
-
-### How to setup the deployment environment
-
-* Addons, packages, or other dependencies required for deployment.
-* Required environment variables or credentials not included in git.
-* Monitoring services and logging.
-
-### How to deploy
+    ```sh
+    cd $GOPATH/src/github.com/GoogleCloudPlatform/gcloud-golang-todos
+    git submodule init
+    ```
 
 
-## Troubleshooting & useful tools
+### Running
 
-### Examples of common tasks
+#### [Locally via Managed VMs & Docker](https://developers.google.com/appengine/docs/managed-vms/)
 
-e.g.
-* How to make curl requests while authenticated via oauth.
-* How to monitor background jobs.
-* How to run the app through a proxy.
+```sh
+# Check that Docker is running
+boot2docker up
+$(boot2docker shellinit)
 
+# Run the app
+gcloud preview app run main
 
-## Contributing changes
+# Open http://localhost:8080/examples/angularjs/index.html in the browser!
+```
+
+### Contributing changes
 
 * See [CONTRIB.md](CONTRIB.md)
 
 
-## Licensing
+### Licensing
 
 * See [LICENSE](LICENSE)
