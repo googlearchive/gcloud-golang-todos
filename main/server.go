@@ -63,7 +63,7 @@ func init() {
 	r.HandleFunc(SlashedPathPrefix+"{id}",
 		errorHandler(DeleteTodo)).Methods("DELETE")
 	http.Handle("/", r)
-	http.HandleFunc("/learn.json", RenderMergedJson)
+	http.HandleFunc("/learn.json", RenderSidebarJson)
 	http.HandleFunc("/api", IsApiEnabled)
 }
 
@@ -285,7 +285,12 @@ func mergeJsonObjectFiles(files ...string) (b []byte, err error) {
 	return b, nil
 }
 
-func RenderMergedJson(w http.ResponseWriter, r *http.Request) {
+// RenderSidebarJson writes a sidebar JSON file consumable by the TodoMVC
+// JS which is specific to our Go backend implementation.
+// On its first invocation, it will merge TodoMVC's relatively static
+// learn.json with our own backend data. The resultant []byte is then held
+// in memory for the lifetime of the server.
+func RenderSidebarJson(w http.ResponseWriter, r *http.Request) {
 	if learnJson == nil {
 		b, err := mergeJsonObjectFiles("static/todomvc/learn.json", "static/backend_learn.json")
 		if err != nil {
