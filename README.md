@@ -1,53 +1,67 @@
-## Project name
+## gcloud-golang-todos
 
-A description of what this project does and who it serves.
-
-Include authorship, support contact and release information.
+> [TodoMVC](http://todomvc.com) backend using [gcloud-golang](//github.com/GoogleCloudPlatform/gcloud-golang).
 
 
-## Project setup, installation, and configuration
+### Prerequisites
 
-How do I, as a developer, start working on the project?
+1. Set up a [Go installation](https://golang.org/doc/install) and [workspace](https://golang.org/doc/code.html).
+1. Install the [Cloud SDK](https://cloud.google.com/sdk/). If necessary, running the following will install
+the Developer Preview commands and the App Engine SDK for Go.
 
-1. What dependencies does it have (where are they expressed) and how do I install them?
-1. Can I see the project working before I change anything?
+    ```sh
+    gcloud components update preview gae-go
+    ```
 
+1. Create a new cloud project on [console.developers.google.com](https://console.developers.google.com).
+1. Export your project id:
+    
+    ```sh
+    gcloud config set project <project id>
+    ```
 
-## Testing
+1. Clone the repository by running the following command:
 
-How do I run the project's automated tests?
+    ```sh
+    go get -u github.com/GoogleCloudPlatform/gcloud-golang-todos
+    ```
 
-* Unit Tests
+1. Initialize the `todomvc` submodule. Since TodoMVC is linked within this repository as a git submodule, we need
+to fetch its codebase separately:
 
-* Integration Tests
-
-
-## Deploying
-
-### How to setup the deployment environment
-
-* Addons, packages, or other dependencies required for deployment.
-* Required environment variables or credentials not included in git.
-* Monitoring services and logging.
-
-### How to deploy
-
-
-## Troubleshooting & useful tools
-
-### Examples of common tasks
-
-e.g.
-* How to make curl requests while authenticated via oauth.
-* How to monitor background jobs.
-* How to run the app through a proxy.
+    ```sh
+    cd $GOPATH/src/github.com/GoogleCloudPlatform/gcloud-golang-todos
+    git submodule update --init
+    ```
 
 
-## Contributing changes
+### Running
+
+#### [Locally via Managed VMs & Docker](https://developers.google.com/appengine/docs/managed-vms/)
+
+```sh
+# Check that Docker is running.
+boot2docker up
+$(boot2docker shellinit)
+
+# Download the Docker runtime images for Managed VMs; make sure to select the Go runtime.
+gcloud preview app setup-managed-vms
+
+# Run the app.
+gcloud preview app run main
+
+# Open http://localhost:8080/examples/angularjs/index.html in the browser!
+```
+
+### Todo
+
+* Determine a reasonable testing strategy. Either wait for an aetest port, or develop something more involved.
+
+### Contributing changes
 
 * See [CONTRIB.md](CONTRIB.md)
 
 
-## Licensing
+### Licensing
 
 * See [LICENSE](LICENSE)
